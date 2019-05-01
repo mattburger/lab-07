@@ -3,9 +3,9 @@
 require('dotenv').config();
 const express = require('express');
 const app = express();
-
 const cors = require('cors');
 app.use(cors());
+const superagent = require('superagent');
 
 const PORT = process.env.PORT || 3000;
 
@@ -16,9 +16,16 @@ app.get('/',(request,response) => {
 
 app.get('/location',(request,response) => {
   try {
-    const location = require('./data/geo.json');
-    const res = sendLocation(location,request);
-    response.send(res);
+    const queryData = request.query.data;
+    const mapsUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${queryData}&key=${process.env.GEOCODE_API_KEY}`;
+    console.log(mapsUrl);
+
+    superagent.get(mapsUrl)
+      .end( (err,googleMapsApiResponse) => {
+        console.log(googleMapsApiResponse.body);
+        const location = new Location(queryData, googleMapsApiResponse.body);
+        response.send(location);
+      });
   } catch(err) {
     handleError(err, response);
   }
@@ -35,10 +42,6 @@ app. listen (PORT, () => {
   console.log(`Listen on port: ${PORT}`);
 });
 
-const sendLocation = (location, req) => {
-  const loc = new Location(req.query.data, location.results[0].formatted_address, location.results[0].geometry.location.lat, location.results[0].geometry.location.lng);
-  return loc;
-};
 
 function sendWeather() {
   const weather = require('./data/darksky.json');
@@ -55,11 +58,11 @@ function Forecast(time, forecast) {
   this.created_at = Date.now();
 }
 
-function Location(query, name, lat, lon) {
+function Location(query, res) {
   this.search_query = query;
-  this.formatted_query = name;
-  this.latitude = lat;
-  this.longitude = lon;
+  this.formatted_query = res.results[0].formatted_address;
+  this.latitude = res.results[0].geometry.location.lat;
+  this.longitude = res.results[0].geometry.location.lng;
 }
 
 function handleError(err, res) {
