@@ -1,6 +1,8 @@
 'use strict';
 
 require('dotenv').config();
+var lata;
+var longa;
 const express = require('express');
 const app = express();
 const cors = require('cors');
@@ -16,24 +18,33 @@ app.get('/',(request,response) => {
 
 app.get('/location',(request,response) => {
   try {
-    const queryData = request.query.data;
-    const mapsUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${queryData}&key=${process.env.GEOCODE_API_KEY}`;
-    console.log(mapsUrl);
-
-    superagent.get(mapsUrl)
-      .end( (err,googleMapsApiResponse) => {
-        console.log(googleMapsApiResponse.body);
-        const location = new Location(queryData, googleMapsApiResponse.body);
-        response.send(location);
-      });
+    sendLocation(request, response);
   } catch(err) {
     handleError(err, response);
   }
 });
 
 app.get('/weather', (request, response) => {
-  let forecasts = sendWeather(request, response);
-  response.send(forecasts);
+  // let forecasts = sendWeather(request, response);
+  // response.send(forecasts);
+  try {
+    const darkUrl = `https://api.darksky.net/forecast/${process.env.WEATHER_API_KEY}/${lata},${longa}`;
+    //console.log(mapsUrl);
+
+    superagent.get(darkUrl)
+      .end( (err,darkSkyApiResponse) => {
+        //console.log(darkSkyApiResponse.body);
+        const darkSkyDailyData = darkSkyApiResponse.body.daily.data;
+        console.log('hi1');
+        const darkSkyDailyArr = darkSkyDailyData.map(element => {
+          return new Forecast(element.summary, element.time);
+        });
+        console.log('my dark array',darkSkyDailyArr);
+        response.send(darkSkyDailyArr);
+      });
+  } catch(err) {
+    handleError(err, response);
+  }
 });
 
 app.use('*', (request, response) => response.send('This route does not exist'));
@@ -43,19 +54,32 @@ app. listen (PORT, () => {
 });
 
 
-function sendWeather() {
-  const weather = require('./data/darksky.json');
-  let forecastArray = weather.daily.data;
-  let someArr = [];
-  forecastArray.map(element => {
-    someArr.push(new Forecast(element.time, element.summary));
-  });
-  return someArr;
-}
-console.log('should return weather', sendWeather());
+// function sendWeather() {
+//   const weather = require('./data/darksky.json');
+//   let forecastArray = weather.daily.data;
+//   let someArr = [];
+//   forecastArray.map(element => {
+//     someArr.push(new Forecast(element.time, element.summary));
+//   });
+//   return someArr;
+// }
+// console.log('should return weather', sendWeather());
+function sendLocation(request, response){
+  const queryData = request.query.data;
+  const mapsUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${queryData}&key=${process.env.GEOCODE_API_KEY}`;
 
-function Forecast(time, forecast) {
-  this.forecast = forecast;
+  superagent.get(mapsUrl)
+    .end( (err,googleMapsApiResponse) => {
+      // console.log(googleMapsApiResponse.body);
+      const location = new Location(queryData, googleMapsApiResponse.body);
+      lata = location.latitude;
+      longa = location.longitude;
+      response.send(location);
+    });
+}
+
+function Forecast(summary,time) {
+  this.forecast = summary;
   this.time = new Date(time * 1000).toString().slice(0, 15);
   this.created_at = Date.now();
 }
