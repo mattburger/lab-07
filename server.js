@@ -42,12 +42,14 @@ const sendLocation = (location, req) => {
 
 function sendWeather() {
   const weather = require('./data/darksky.json');
-  let forecastArray = [];
-  weather.daily.data.forEach(element => {
-    forecastArray.push(new Forecast(element.time, element.summary));
+  let forecastArray = weather.daily.data;
+  let someArr = [];
+  forecastArray.map(element => {
+    someArr.push(new Forecast(element.time, element.summary));
   });
-  return forecastArray;
+  return someArr;
 }
+console.log('should return weather', sendWeather());
 
 function Forecast(time, forecast) {
   this.forecast = forecast;
