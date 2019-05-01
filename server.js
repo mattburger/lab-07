@@ -17,7 +17,7 @@ app.get('/',(request,response) => {
 app.get('/location',(request,response) => {
   try {
     const location = require('./data/geo.json');
-    const res = parserExplorer(location,request);
+    const res = sendLocation(location,request);
     response.send(res);
   } catch(err) {
     handleError(err, response);
@@ -35,7 +35,7 @@ app. listen (PORT, () => {
   console.log(`Listen on port: ${PORT}`);
 });
 
-const parserExplorer = (location, req) => {
+const sendLocation = (location, req) => {
   const loc = new Location(req.query.data, location.results[0].formatted_address, location.results[0].geometry.location.lat, location.results[0].geometry.location.lng);
   return loc;
 };
