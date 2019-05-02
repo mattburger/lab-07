@@ -9,6 +9,9 @@ const app = express();
 const cors = require('cors');
 app.use(cors());
 const superagent = require('superagent');
+const pg = require('pg');
+const sql = new pg.Client(process.env.DATABASE_URL);
+
 
 const PORT = process.env.PORT || 3000;
 
