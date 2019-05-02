@@ -110,13 +110,6 @@ function Event(link, name, event_date, summary){
   this.summary = summary;
 }
 
-function Meetup(link, name, event_date, host){
-  this.link = link;
-  this.name = name;
-  this.event_date = new Date(event_date).toDateString();
-  this.host = host;
-}
-
 function handleError(err, res) {
   if (err) res.status(500).send('Sorry, something went wrong');
 }
