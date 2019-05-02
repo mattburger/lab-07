@@ -3,6 +3,7 @@
 require('dotenv').config();
 var lata;
 var longa;
+var city;
 const express = require('express');
 const app = express();
 const cors = require('cors');
@@ -12,6 +13,7 @@ const superagent = require('superagent');
 const PORT = process.env.PORT || 3000;
 
 app.use(express.static('./'));
+
 app.get('/',(request,response) => {
   response.status(200).send('Connected!');
 });
@@ -28,21 +30,16 @@ app.get('/weather', (request, response) => {
   // let forecasts = sendWeather(request, response);
   // response.send(forecasts);
   try {
-    const darkUrl = `https://api.darksky.net/forecast/${process.env.WEATHER_API_KEY}/${lata},${longa}`;
-    //console.log(mapsUrl);
-
-    superagent.get(darkUrl)
-      .end( (err,darkSkyApiResponse) => {
-        //console.log(darkSkyApiResponse.body);
-        const darkSkyDailyData = darkSkyApiResponse.body.daily.data;
-        console.log('hi1');
-        const darkSkyDailyArr = darkSkyDailyData.map(element => {
-          return new Forecast(element.summary, element.time);
-        });
-        console.log('my dark array',darkSkyDailyArr);
-        response.send(darkSkyDailyArr);
-      });
+    sendWeather(request, response);
   } catch(err) {
+    handleError(err, response);
+  }
+});
+
+app.get('/events', (request, response) => {
+  try{
+    sendEvents(request, response);
+  }catch(err){
     handleError(err, response);
   }
 });
@@ -53,30 +50,45 @@ app. listen (PORT, () => {
   console.log(`Listen on port: ${PORT}`);
 });
 
-
-// function sendWeather() {
-//   const weather = require('./data/darksky.json');
-//   let forecastArray = weather.daily.data;
-//   let someArr = [];
-//   forecastArray.map(element => {
-//     someArr.push(new Forecast(element.time, element.summary));
-//   });
-//   return someArr;
-// }
-// console.log('should return weather', sendWeather());
 function sendLocation(request, response){
   const queryData = request.query.data;
   const mapsUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${queryData}&key=${process.env.GEOCODE_API_KEY}`;
 
   superagent.get(mapsUrl)
     .end( (err,googleMapsApiResponse) => {
-      // console.log(googleMapsApiResponse.body);
       const location = new Location(queryData, googleMapsApiResponse.body);
       lata = location.latitude;
       longa = location.longitude;
+      city = location.formatted_query;
       response.send(location);
     });
 }
+
+function sendWeather(request, response) {
+  const darkUrl = `https://api.darksky.net/forecast/${process.env.WEATHER_API_KEY}/${lata},${longa}`;
+
+  superagent.get(darkUrl)
+    .end( (err,darkSkyApiResponse) => {
+      const darkSkyDailyData = darkSkyApiResponse.body.daily.data;
+      const darkSkyDailyArr = darkSkyDailyData.map(element => {
+        return new Forecast(element.summary, element.time);
+      });
+      response.send(darkSkyDailyArr);
+    });
+}
+
+function sendEvents(request, response) {
+  const eventUrl = `https://www.eventbriteapi.com/v3/events/search?token=${process.env.EVENTBRITE_API_KEY}&location.address=${city}`;
+  superagent.get(eventUrl)
+    .end( (err,eventbriteApiResponse) => {
+      const eventbriteData = eventbriteApiResponse.body.events;
+      const eventbriteArr = eventbriteData.map(event => {
+        return new Event(event.url, event.name.text, event.start.local, event.summary);
+      });
+      response.send(eventbriteArr);
+    });
+}
+
 
 function Forecast(summary,time) {
   this.forecast = summary;
@@ -89,6 +101,20 @@ function Location(query, res) {
   this.formatted_query = res.results[0].formatted_address;
   this.latitude = res.results[0].geometry.location.lat;
   this.longitude = res.results[0].geometry.location.lng;
+}
+
+function Event(link, name, event_date, summary){
+  this.link = link;
+  this.name = name;
+  this.event_date = new Date(event_date).toDateString();
+  this.summary = summary;
+}
+
+function Meetup(link, name, event_date, host){
+  this.link = link;
+  this.name = name;
+  this.event_date = new Date(event_date).toDateString();
+  this.host = host;
 }
 
 function handleError(err, res) {
