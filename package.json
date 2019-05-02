@@ -1,11 +1,10 @@
 {
-  "name": "lab-08",
+  "name": "lab-06-repository",
   "version": "1.0.0",
   "description": "Lab 06 for 301",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
